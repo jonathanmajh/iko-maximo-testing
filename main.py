@@ -68,21 +68,28 @@ userids = {
     'ANTXINVC': ['ANT', ['ANT', 'STOREROOM', 'VIEWER1'], '']
 }
 
-persongroups = {}
+uploadFiles = {
+    'IKO_PERGRP': 'persongroups.csv',
+    'IKO_ITEMMASTER': 'IKO_ITEMMASTER',
+    'IKO_LOCATION':'IKO_LOCATION',
+    'IKO_ASSET':'IKO_ASSET',
+    'IKO_JOBPLAN':'IKO_JOBPLAN',
+    'IKO_JPASSETLINK': 'IKO_JPASSETLINK',
+    'IKO_JOBLABOR': 'IKO_JOBLABOR'
+}
 
 
 def ensureLoggedIn():
     isLoggedInAdmin = False
-    driver.get(
-        "https://admin.test.apps.iko-openshift-cluster.iko.max-it-eam.com/users"
-    )
+    if (('auth' not in driver.current_url) and ('login' not in driver.current_url)):
+        isLoggedInAdmin = True
+
+    if ('iko.max-it-eam.com' not in driver.current_url):
+        driver.get('https://admin.dev.iko.max-it-eam.com/users')
+        isLoggedInAdmin = False
 
     while not (isLoggedInAdmin):
         try:
-            login = WebDriverWait(driver, timeout=5).until(
-                lambda d: d.find_element(By.ID, value="column-username"))
-        except Exception as e:
-            isLoggedInAdmin = False
             login = WebDriverWait(driver, timeout=5).until(
                 lambda d: d.find_element(By.ID, value="username"))
             login.send_keys('majona')
@@ -93,6 +100,8 @@ def ensureLoggedIn():
                 lambda d: d.find_element(By.ID, value="password"))
             login.send_keys('maximo123456789')
             login.submit()
+        except Exception:
+            isLoggedInAdmin = False
         else:
             isLoggedInAdmin = True
     return True
@@ -100,9 +109,7 @@ def ensureLoggedIn():
 
 def createUsers(userid):
     ensureLoggedIn()
-    driver.get(
-        "https://admin.dev.iko.max-it-eam.com/users/add"
-    )
+    driver.get("https://admin.dev.iko.max-it-eam.com/users/add")
     # close the tour popup
     try:
         close = WebDriverWait(driver, timeout=2).until(
@@ -110,8 +117,6 @@ def createUsers(userid):
         close.click()
     except Exception:
         pass
-    # new_user = WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.XPATH, '//button[text()="Add user"]'))
-    # new_user.click()
 
     field = WebDriverWait(driver, timeout=10).until(
         lambda d: d.find_element(By.XPATH, '//input[@name="displayName"]'))
@@ -183,6 +188,7 @@ def updateUser(userid, userdetails):
     driver.get(
         f"https://dev.manage.dev.iko.max-it-eam.com/maximo/oslc/graphite/manage-shell/index.html#/main?event=loadapp&value=user&additionalevent=useqbe&additionaleventvalue=userid={userid}"
     )
+    
     iframe = WebDriverWait(driver, timeout=20).until(
         lambda d: d.find_element(By.ID, 'manage-shell_Iframe'))
     driver.switch_to.frame(iframe)
@@ -196,29 +202,29 @@ def updateUser(userid, userdetails):
         EC.element_to_be_clickable((By.ID, 'maf836c7d-tb')))
     field.click()
     field.send_keys(userdetails[0])
+    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(
+        By.ID, 'toolactions_SAVE-tbb_anchor')).click()
+    time.sleep(2)
 
-    # switch to groups tab
-    # WebDriverWait(driver, timeout=10).until(
-    #     lambda d: d.find_element(By.ID, 'mf06d3970-tab_anchor')).click()
-
-    actions = ActionChains(driver) 
+    actions = ActionChains(driver)
     filepath = os.path.abspath('securitygroups.csv')
-    with open (filepath, 'w', newline='') as csvfile:
+    with open(filepath, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['USERID','GROUPNAME'])
+        writer.writerow(['USERID', 'GROUPNAME'])
         for group in userdetails[1]:
-            writer.writerow([userid,group])
+            writer.writerow([userid, group])
 
-    
-    WebDriverWait(driver, timeout=10).until(
-         lambda d: d.find_element(By.ID, 'md86fe08f_ns_menu_IFIMPORT_OPTION')).click()
-    field = WebDriverWait(driver, timeout=10).until(
-         lambda d: d.find_element(By.ID, 'm5bd8376e-tb'))
+    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(
+        By.ID, 'md86fe08f_ns_menu_IFIMPORT_OPTION')).click()
+    field = WebDriverWait(
+        driver,
+        timeout=10).until(lambda d: d.find_element(By.ID, 'm5bd8376e-tb'))
     field.send_keys('IKO_GROUPUSER')
     actions.send_keys(Keys.TAB)
     # fuck another iframe wtf
-    iframe2 = WebDriverWait(driver, timeout=20).until(
-    lambda d: d.find_element(By.ID, 'upload_iframe'))
+    iframe2 = WebDriverWait(
+        driver,
+        timeout=20).until(lambda d: d.find_element(By.ID, 'upload_iframe'))
     driver.switch_to.frame(iframe2)
     field = WebDriverWait(driver, timeout=10).until(
         lambda d: d.find_element(By.XPATH, "//input[@type='file']"))
@@ -226,44 +232,27 @@ def updateUser(userid, userdetails):
     driver.switch_to.default_content()
     driver.switch_to.frame(iframe)
     WebDriverWait(driver, timeout=10).until(
-         lambda d: d.find_element(By.ID, 'md0955453-pb')).click()
+        lambda d: d.find_element(By.ID, 'md0955453-pb')).click()
     time.sleep(5)
-            # new group row
-            # try:
-            #     field = WebDriverWait(driver, timeout=10).until(
-            #         EC.element_to_be_clickable(
-            #             (By.ID, 'mbe325d5b_bg_button_addrow-pb_addrow_a')))
-            #     field.click()
-            #     # enter group code
-            #     field = WebDriverWait(driver, timeout=10).until(
-            #         EC.element_to_be_clickable((By.ID, 'mdb5bd64e-tb')))
-            #     time.sleep(2)
-            #     field.send_keys(group)
-            #     actions.send_keys(Keys.TAB)
-            #     actions.perform()
-            #     WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(
-            #         By.ID, 'toolactions_SAVE-tbb_anchor')).click()
-            #     time.sleep(2)
-            # except Exception as e:
-            #     print(f'failed to add {group} to user group for {userid}')
-
 
 for user in userids:
     try:
         createUsers(user)
     except Exception:
         print(f'failed to create user {user}')
-        
+
 for user in userids:
     try:
         updatePeople(user, userids[user])
     except Exception:
         print(f'failed to update people {user}')
-        
+
 for user in userids:
     try:
         updateUser(user, userids[user])
     except Exception:
         print(f'failed to update user {user}')
+
+print('complete')
 
 driver.quit()
