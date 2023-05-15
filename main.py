@@ -15,14 +15,14 @@ path = driver.install(browser=driver.chrome)
 print(f"Installed chromedriver driver to path: {path}")
 service = Service(executable_path=path)
 
-# for now
+# # for now
 options = webdriver.ChromeOptions()
-options.add_argument('ignore-certificate-errors')
+# options.add_argument('ignore-certificate-errors')
 
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.maximize_window()
-# actions = ActionChains(driver)
+actions = ActionChains(driver)
 
 # userid: [siteid, sercurity groups, person groups, labor, supervisor]
 userids = {
@@ -85,7 +85,7 @@ def ensureLoggedIn():
         isLoggedInAdmin = True
 
     if ('iko.max-it-eam.com' not in driver.current_url):
-        driver.get('https://admin.dev.iko.max-it-eam.com/users')
+        driver.get('https://admin.test.iko.max-it-eam.com/users')
         isLoggedInAdmin = False
 
     while not (isLoggedInAdmin):
@@ -94,12 +94,11 @@ def ensureLoggedIn():
                 lambda d: d.find_element(By.ID, value="username"))
             login.send_keys('majona')
             login.submit()
-
-            # password
-            login = WebDriverWait(driver, timeout=5).until(
-                lambda d: d.find_element(By.ID, value="password"))
-            login.send_keys('maximo123456789')
-            login.submit()
+            breakpoint            # password
+            # login = WebDriverWait(driver, timeout=50).until(
+            #     'iko.max-it-eam.com' in driver.current_url)
+            # login.send_keys('maximo123456789')
+            # login.submit()
         except Exception:
             isLoggedInAdmin = False
         else:
@@ -108,8 +107,7 @@ def ensureLoggedIn():
 
 
 def createUsers(userid):
-    ensureLoggedIn()
-    driver.get("https://admin.dev.iko.max-it-eam.com/users/add")
+    driver.get("https://admin.test.iko.max-it-eam.com/users/add")
     # close the tour popup
     try:
         close = WebDriverWait(driver, timeout=2).until(
@@ -117,7 +115,10 @@ def createUsers(userid):
         close.click()
     except Exception:
         pass
-
+    # field = WebDriverWait(driver, timeout=10).until(
+    #         lambda d: d.find_element(By.ID, 'local'))
+    # field.click()
+    # WAIT HERE TO SWITCH TO LOCAL AUTH
     field = WebDriverWait(driver, timeout=10).until(
         lambda d: d.find_element(By.XPATH, '//input[@name="displayName"]'))
     field.send_keys(userid)
@@ -160,7 +161,7 @@ def createUsers(userid):
 def updatePeople(userid, userdetails):
     ensureLoggedIn()
     driver.get(
-        f"https://dev.manage.dev.iko.max-it-eam.com/maximo/oslc/graphite/manage-shell/index.html#/main?event=loadapp&value=person&additionalevent=useqbe&additionaleventvalue=PERSONID={userid}"
+        f"https://test.manage.test.iko.max-it-eam.com/maximo/oslc/graphite/manage-shell/index.html#/main?event=loadapp&value=person&additionalevent=useqbe&additionaleventvalue=PERSONID={userid}"
     )
     # first load can take > 10 seconds
     # the details are in an iframe...
@@ -186,7 +187,7 @@ def updatePeople(userid, userdetails):
 def updateUser(userid, userdetails):
     ensureLoggedIn()
     driver.get(
-        f"https://dev.manage.dev.iko.max-it-eam.com/maximo/oslc/graphite/manage-shell/index.html#/main?event=loadapp&value=user&additionalevent=useqbe&additionaleventvalue=userid={userid}"
+        f"https://test.manage.test.iko.max-it-eam.com/maximo/oslc/graphite/manage-shell/index.html#/main?event=loadapp&value=user&additionalevent=useqbe&additionaleventvalue=userid={userid}"
     )
     
     iframe = WebDriverWait(driver, timeout=20).until(
@@ -236,22 +237,32 @@ def updateUser(userid, userdetails):
     time.sleep(5)
 
 for user in userids:
+    ensureLoggedIn()
     try:
         createUsers(user)
-    except Exception:
+    except Exception as e:
         print(f'failed to create user {user}')
+        print(e)
 
-for user in userids:
-    try:
-        updatePeople(user, userids[user])
-    except Exception:
-        print(f'failed to update people {user}')
+# for user in userids:
+#     try:
+#         updatePeople(user, userids[user])
+#     except Exception:
+#         print(f'failed to update people {user}')
 
-for user in userids:
-    try:
-        updateUser(user, userids[user])
-    except Exception:
-        print(f'failed to update user {user}')
+
+# filepath = os.path.abspath('securitygroups.csv')
+# with open(filepath, 'w', newline='') as csvfile:
+#     writer = csv.writer(csvfile, delimiter=',')
+#     writer.writerow(['USERID', 'GROUPNAME'])
+#     for user in userids:
+#         userdetails = userids[user]
+#         try:
+            
+#             for group in userdetails[1]:
+#                 writer.writerow([user, group])
+#         except Exception:
+#             print(f'failed to update user {user}')
 
 print('complete')
 
